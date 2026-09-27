@@ -44,7 +44,8 @@ fun DownloadsScreen(onPlayFile: (String) -> Unit) {
             Column(modifier = Modifier.padding(12.dp)) {
                 Text("Downloads", style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    "Saved to ${viewModel.downloadDirPath()}",
+                    "Finished videos are copied to Movies/Stremio Lite on your phone " +
+                        "(working copy: ${viewModel.downloadDirPath()})",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -149,12 +150,18 @@ private fun DownloadCard(
                     append(" · ${task.status.name.lowercase()}")
                     if (task.status == DownloadStatus.RUNNING) {
                         append(" · ${DownloadRepository.formatBytes(task.speedBytesPerSec)}/s")
-                        append(" · ${task.chunks.size} connections")
+                        if (task.isTorrent) {
+                            append(" · ${task.seeds} seeds / ${task.peers} peers")
+                        } else {
+                            append(" · ${task.chunks.size} connections")
+                        }
                         task.etaSeconds?.let { append(" · ${DownloadRepository.formatDuration(it)} left") }
                     }
-                    if (!task.supportsRanges && task.status != DownloadStatus.COMPLETED) {
+                    if (task.fetchingMetadata) append(" · finding peers")
+                    if (!task.isTorrent && !task.supportsRanges && task.status != DownloadStatus.COMPLETED) {
                         append(" · single connection (server has no range support)")
                     }
+                    if (task.galleryUri != null) append(" · saved to your Movies library")
                 },
                 style = MaterialTheme.typography.labelSmall
             )

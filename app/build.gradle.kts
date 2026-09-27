@@ -14,6 +14,12 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        ndk {
+            // libtorrent4j ships one native library per ABI; these cover every real
+            // Android phone plus the 64-bit emulator.
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
     }
 
     buildTypes {
@@ -40,6 +46,7 @@ android {
     }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        jniLibs.useLegacyPackaging = true
     }
 }
 
@@ -63,6 +70,12 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // In-app BitTorrent engine (libtorrent via JNI) — the same one LibreTorrent uses.
+    implementation("org.libtorrent4j:libtorrent4j:2.1.0-35")
+    implementation("org.libtorrent4j:libtorrent4j-android-arm64:2.1.0-35")
+    implementation("org.libtorrent4j:libtorrent4j-android-arm:2.1.0-35")
+    implementation("org.libtorrent4j:libtorrent4j-android-x86_64:2.1.0-35")
 
     implementation("androidx.media3:media3-exoplayer:1.3.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.3.1")

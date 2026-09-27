@@ -4,6 +4,9 @@ import kotlinx.serialization.Serializable
 
 enum class DownloadStatus { QUEUED, RUNNING, PAUSED, COMPLETED, FAILED }
 
+/** How the bytes are fetched: plain HTTP ranges, or BitTorrent through libtorrent. */
+enum class DownloadKind { HTTP, TORRENT }
+
 @Serializable
 data class ChunkState(
     val index: Int,
@@ -20,7 +23,9 @@ data class ChunkState(
 @Serializable
 data class DownloadTask(
     val id: String,
+    /** HTTP URL, or the magnet URI for a torrent. Also the identity used to de-duplicate. */
     val url: String,
+    val kind: DownloadKind = DownloadKind.HTTP,
     val fileName: String,
     val title: String,
     /** Where this came from, so the UI can link back to the show/movie. */
@@ -37,6 +42,13 @@ data class DownloadTask(
     val supportsRanges: Boolean = false,
     val chunks: List<ChunkState> = emptyList(),
     val error: String? = null,
+    /** Torrent-only: the file inside the torrent, and live swarm counters. */
+    val torrentFileIndex: Int? = null,
+    val peers: Int = 0,
+    val seeds: Int = 0,
+    val fetchingMetadata: Boolean = false,
+    /** Set once the finished video has been copied into the phone's Movies library. */
+    val galleryUri: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val completedAt: Long? = null,
     /** Transient, not worth persisting accurately: bytes/second of the last sample window. */
@@ -47,6 +59,8 @@ data class DownloadTask(
 
     val isActive: Boolean
         get() = status == DownloadStatus.QUEUED || status == DownloadStatus.RUNNING
+
+    val isTorrent: Boolean get() = kind == DownloadKind.TORRENT
 
     val etaSeconds: Long?
         get() = if (speedBytesPerSec > 0 && totalBytes > 0) {

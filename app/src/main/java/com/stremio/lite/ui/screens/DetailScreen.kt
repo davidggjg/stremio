@@ -21,7 +21,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Downloading
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -166,7 +165,8 @@ fun DetailScreen(
 
         items(state.streams.size) { index ->
             val option = state.streams[index]
-            val task = downloads.firstOrNull { it.url == option.stream.httpUrl }
+            val streamKey = option.stream.httpUrl ?: option.stream.magnetUri(meta?.name)
+            val task = downloads.firstOrNull { it.url == streamKey }
             StreamCard(
                 option = option,
                 downloadStatusText = task?.let { t ->
@@ -174,8 +174,16 @@ fun DetailScreen(
                         DownloadStatus.COMPLETED -> "Downloaded · ${DownloadRepository.formatBytes(t.downloadedBytes)}"
                         DownloadStatus.FAILED -> "Download failed: ${t.error.orEmpty()}"
                         DownloadStatus.PAUSED -> "Paused at ${(t.progress * 100).toInt()}%"
-                        else -> "${(t.progress * 100).toInt()}% · ${DownloadRepository.formatBytes(t.speedBytesPerSec)}/s" +
-                            " · ${t.connections} connections"
+                        else -> if (t.fetchingMetadata) {
+                            "Finding peers for this torrent…"
+                        } else {
+                            buildString {
+                                append("${(t.progress * 100).toInt()}%")
+                                append(" · ${DownloadRepository.formatBytes(t.speedBytesPerSec)}/s")
+                                if (t.isTorrent) append(" · ${t.seeds} seeds / ${t.peers} peers")
+                                else append(" · ${t.connections} connections")
+                            }
+                        }
                     }
                 },
                 downloadProgress = task?.takeIf { it.isActive || it.status == DownloadStatus.PAUSED }?.progress,
@@ -188,12 +196,13 @@ fun DetailScreen(
                             onPlay(option.stream.httpUrl!!, option.stream.behaviorHints?.proxyHeaders?.request.orEmpty())
                         option.stream.externalUrl != null ->
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(option.stream.externalUrl)))
-                        option.stream.isTorrent -> openMagnet(context, option, meta?.name)
+                        // A torrent has nothing to stream until the engine has some of it, so
+                        // Play starts the download (sequentially, first bytes first).
+                        option.stream.isTorrent -> viewModel.download(option)
                         else -> Toast.makeText(context, "This stream cannot be played here", Toast.LENGTH_SHORT).show()
                     }
                 },
-                onDownload = { viewModel.download(option) },
-                onMagnet = { openMagnet(context, option, meta?.name) }
+                onDownload = { viewModel.download(option) }
             )
         }
 
@@ -210,8 +219,7 @@ private fun StreamCard(
     downloadProgress: Float?,
     downloaded: Boolean,
     onPlay: () -> Unit,
-    onDownload: () -> Unit,
-    onMagnet: () -> Unit
+    onDownload: () -> Unit
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
@@ -240,7 +248,7 @@ private fun StreamCard(
                     Icon(Icons.Filled.PlayArrow, contentDescription = null)
                     Text(if (downloaded) "Play offline" else "Play")
                 }
-                if (option.stream.httpUrl != null) {
+                if (option.stream.httpUrl != null || option.stream.isTorrent) {
                     TextButton(onClick = onDownload, enabled = !downloaded) {
                         Icon(
                             if (downloaded) Icons.Filled.CheckCircle
@@ -250,25 +258,8 @@ private fun StreamCard(
                         )
                         Text(if (downloaded) "Saved" else "Download")
                     }
-                } else if (option.stream.isTorrent) {
-                    TextButton(onClick = onMagnet) {
-                        Icon(Icons.Filled.Link, contentDescription = null)
-                        Text("Open magnet")
-                    }
                 }
             }
         }
     }
-}
-
-private fun openMagnet(context: android.content.Context, option: StreamOption, title: String?) {
-    val magnet = option.stream.magnetUri(title)
-    if (magnet == null) {
-        Toast.makeText(context, "No magnet link on this stream", Toast.LENGTH_SHORT).show()
-        return
-    }
-    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(magnet))) }
-        .onFailure {
-            Toast.makeText(context, "No torrent app installed to handle magnet links", Toast.LENGTH_LONG).show()
-        }
 }

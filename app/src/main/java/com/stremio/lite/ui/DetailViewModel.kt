@@ -102,20 +102,12 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
         }.mapNotNull { it.await() }.firstOrNull()
     }
 
-    /** The download button: queues the stream and makes sure the background service is up. */
+    /**
+     * The download button. HTTP streams go through the chunked downloader; torrent streams are
+     * fetched by the in-app BitTorrent engine, which pulls the video file out of the torrent.
+     * Either way the file ends up on the phone.
+     */
     fun download(option: StreamOption) {
-        val url = option.stream.httpUrl
-        if (url == null) {
-            _state.value = _state.value.copy(
-                message = if (option.stream.isTorrent) {
-                    "This is a torrent stream (infoHash). Only direct HTTP streams can be downloaded; " +
-                        "use \"Open magnet\" to hand it to a torrent app."
-                } else {
-                    "This stream has no downloadable URL."
-                }
-            )
-            return
-        }
         val meta = _state.value.meta
         val video = _state.value.selectedVideo
         val episodeLabel = video?.let { v ->
@@ -123,20 +115,43 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
         }.orEmpty()
         val title = (meta?.name ?: "Stremio") + episodeLabel
 
+        val httpUrl = option.stream.httpUrl
+        val magnet = option.stream.magnetUri(title)
+
+        if (httpUrl == null && magnet == null) {
+            _state.value = _state.value.copy(message = "This stream has no file to download.")
+            return
+        }
+
         viewModelScope.launch {
-            val result = container.downloads.enqueue(
-                url = url,
-                suggestedName = option.stream.behaviorHints?.filename ?: "$title.mp4",
-                title = title,
-                metaId = meta?.id,
-                metaType = meta?.type,
-                poster = meta?.poster,
-                addonName = option.addon.name,
-                headers = option.stream.behaviorHints?.proxyHeaders?.request.orEmpty()
-            )
+            val result = if (httpUrl != null) {
+                container.downloads.enqueue(
+                    url = httpUrl,
+                    suggestedName = option.stream.behaviorHints?.filename ?: "$title.mp4",
+                    title = title,
+                    metaId = meta?.id,
+                    metaType = meta?.type,
+                    poster = meta?.poster,
+                    addonName = option.addon.name,
+                    headers = option.stream.behaviorHints?.proxyHeaders?.request.orEmpty()
+                )
+            } else {
+                container.downloads.enqueueTorrent(
+                    magnet = magnet!!,
+                    title = title,
+                    fileIndex = option.stream.fileIdx,
+                    metaId = meta?.id,
+                    metaType = meta?.type,
+                    poster = meta?.poster,
+                    addonName = option.addon.name
+                )
+            }
             _state.value = _state.value.copy(
                 message = result.fold(
-                    onSuccess = { "Downloading \"${it.fileName}\" in the background" },
+                    onSuccess = {
+                        if (it.isTorrent) "Torrent added — finding peers, then downloading to your phone"
+                        else "Downloading \"${it.fileName}\" in the background"
+                    },
                     onFailure = { "Could not start the download: ${it.readableMessage()}" }
                 )
             )

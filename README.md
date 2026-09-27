@@ -43,12 +43,25 @@ Every stream with a direct HTTP(S) URL gets a Download button.
 - **Offline playback.** Finished files play from disk through the built-in ExoPlayer screen.
 - Files land in the app's external `Movies` directory — no storage permission needed.
 
-### Torrent streams
-Addons like Torrentio return `infoHash` streams rather than HTTP URLs. There is no BitTorrent engine
-in this app, so those get an **Open magnet** action that hands a full magnet URI (with the addon's
-trackers) to whatever torrent app is installed. Direct HTTP streams — including debrid links from
-Real-Debrid/AllDebrid-configured addons, which is what most people actually download — go through
-the chunked downloader.
+### Torrent streams download in-app too
+Addons like Torrentio return `infoHash` streams rather than HTTP URLs. Those are downloaded by a
+**built-in BitTorrent engine** (libtorrent via libtorrent4j — the same engine LibreTorrent and
+FrostWire use). Nothing is handed off to another app:
+
+- The magnet is built from the addon's infoHash and trackers (with public-tracker fallbacks) and the
+  metadata is fetched over DHT.
+- The video file inside the torrent is picked automatically: the addon's `fileIdx` when it sends one,
+  otherwise the largest video file — so a season pack does not drag in the whole season, and
+  `sample.mkv` / `RARBG.txt` are never mistaken for the film. Every other file is set to `IGNORE`,
+  so only the video is written to storage.
+- Sequential download order, so the beginning of the file lands first.
+- Live seeds/peers counts, pause and resume, and no seeding after the file is complete.
+
+### Where the video ends up
+When a download finishes — HTTP or torrent — the file is copied into **Movies/Stremio Lite** in the
+phone's own media library, so it shows up in the gallery and the Files app like any other video. On
+Android 10+ this uses MediaStore and needs no permission; on older versions it uses
+`WRITE_EXTERNAL_STORAGE` (declared with `maxSdkVersion="28"`).
 
 ## Build
 
@@ -56,7 +69,7 @@ the chunked downloader.
 # Android SDK 34 + JDK 17 required; then:
 echo "sdk.dir=/path/to/android-sdk" > local.properties
 gradle assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
-gradle testDebugUnitTest      # 15 unit tests, incl. a MockWebServer download test
+gradle testDebugUnitTest      # 21 unit tests, incl. a MockWebServer download test
 gradle assembleRelease        # signed with the debug key so it installs as-is
 ```
 
@@ -72,7 +85,7 @@ app/src/main/java/com/stremio/lite/
 ├── AppContainer.kt              shared graph (one OkHttp client for everything)
 ├── data/api/                    api.strem.io: auth, addon collection, library
 ├── data/addon/                  addon protocol: manifest, catalog/meta/stream, repository
-├── data/download/               chunked downloader, queue, foreground service
+├── data/download/               chunked downloader, torrent engine, queue, foreground service
 └── ui/                          Compose screens + view models
 ```
 
@@ -80,6 +93,11 @@ app/src/main/java/com/stremio/lite/
 
 - Talking to `api.strem.io` with your own credentials is what the official clients do; this app
   uses no private keys and stores nothing off-device.
+- The APK carries libtorrent's native library for arm64, arm32 and x86_64, which is most of its
+  ~41 MB size.
+- A torrent that needs peers will sit on "finding peers" until the swarm answers (90s timeout). A
+  dead torrent fails with that message rather than hanging forever.
+- Video inside an archive (`.rar`) is not unpacked; the app picks video files, not archives.
 - Watch progress is read from your account but not yet written back (`datastorePut` is wired in the
   API client but no player reporting is hooked up to it).
 - Addon `config` (per-addon settings pages) is not implemented; configure such addons on the web and
