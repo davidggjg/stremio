@@ -35,6 +35,7 @@ class DownloadRepository(
 ) {
     private val downloader = ChunkedDownloader(client)
     private val torrents = TorrentEngine(context)
+    private val streamServer = TorrentStreamServer(torrents)
     private val stateFile = File(context.filesDir, "downloads.json")
     private val settingsFile = File(context.filesDir, "download_settings.json")
 
@@ -114,6 +115,7 @@ class DownloadRepository(
         magnet: String,
         title: String,
         fileIndex: Int? = null,
+        trackers: List<String> = emptyList(),
         metaId: String? = null,
         metaType: String? = null,
         poster: String? = null,
@@ -136,6 +138,7 @@ class DownloadRepository(
             connections = _settings.value.connectionsPerDownload,
             supportsRanges = true,
             torrentFileIndex = fileIndex,
+            trackers = trackers,
             fetchingMetadata = true,
             status = DownloadStatus.QUEUED
         )
@@ -215,10 +218,12 @@ class DownloadRepository(
     /** Runs the torrent to completion, filling in metadata as soon as the swarm provides it. */
     private suspend fun runTorrent(task: DownloadTask) {
         val finalFile = torrents.download(
+            taskId = task.id,
             magnetOrInfoHash = task.url,
             saveDir = File(downloadDir(), TORRENT_SUBDIR),
             preferredFileIndex = task.torrentFileIndex,
             connectionsLimit = task.connections * 20,
+            extraTrackers = task.trackers,
             onMetadata = { meta ->
                 patch(task.id) {
                     it.copy(
@@ -236,6 +241,7 @@ class DownloadRepository(
                         speedBytesPerSec = progress.speedBytesPerSec,
                         peers = progress.peers,
                         seeds = progress.seeds,
+                        dhtNodes = progress.dhtNodes,
                         fetchingMetadata = progress.fetchingMetadata
                     )
                 }
@@ -305,6 +311,26 @@ class DownloadRepository(
             @Suppress("DEPRECATION")
             manager.isActiveNetworkMetered
         }
+    }
+
+    /**
+     * A local HTTP URL the player can open for a torrent that is still downloading. Null until the
+     * engine has the metadata and the handle, which is when there is something to serve.
+     */
+    fun streamUrlFor(taskId: String): String? =
+        if (torrents.activeTorrent(taskId) != null) streamServer.urlFor(taskId) else null
+
+    /** Suspends until [taskId] can be streamed, or the task fails. */
+    suspend fun awaitStreamUrl(taskId: String, timeoutMs: Long = 180_000): String? {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            val task = _tasks.value.firstOrNull { it.id == taskId } ?: return null
+            if (task.status == DownloadStatus.FAILED) return null
+            if (task.status == DownloadStatus.COMPLETED) return task.filePath
+            streamUrlFor(taskId)?.let { return it }
+            kotlinx.coroutines.delay(500)
+        }
+        return null
     }
 
     fun existingFor(url: String): DownloadTask? = _tasks.value.firstOrNull { it.url == url }

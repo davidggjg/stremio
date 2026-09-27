@@ -175,7 +175,7 @@ fun DetailScreen(
                         DownloadStatus.FAILED -> "Download failed: ${t.error.orEmpty()}"
                         DownloadStatus.PAUSED -> "Paused at ${(t.progress * 100).toInt()}%"
                         else -> if (t.fetchingMetadata) {
-                            "Finding peers for this torrent…"
+                            "Finding peers… (DHT nodes: ${t.dhtNodes})"
                         } else {
                             buildString {
                                 append("${(t.progress * 100).toInt()}%")
@@ -196,9 +196,11 @@ fun DetailScreen(
                             onPlay(option.stream.httpUrl!!, option.stream.behaviorHints?.proxyHeaders?.request.orEmpty())
                         option.stream.externalUrl != null ->
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(option.stream.externalUrl)))
-                        // A torrent has nothing to stream until the engine has some of it, so
-                        // Play starts the download (sequentially, first bytes first).
-                        option.stream.isTorrent -> viewModel.download(option)
+                        // A torrent is played through the local stream server: the download
+                        // starts and playback begins as soon as the first pieces land.
+                        option.stream.isTorrent -> viewModel.playTorrent(option) { localUrl ->
+                            onPlay(localUrl, emptyMap())
+                        }
                         else -> Toast.makeText(context, "This stream cannot be played here", Toast.LENGTH_SHORT).show()
                     }
                 },

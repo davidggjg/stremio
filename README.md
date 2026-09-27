@@ -55,6 +55,12 @@ FrostWire use). Nothing is handed off to another app:
   `sample.mkv` / `RARBG.txt` are never mistaken for the film. Every other file is set to `IGNORE`,
   so only the video is written to storage.
 - Sequential download order, so the beginning of the file lands first.
+- **Play while it downloads.** Pressing Play on a torrent starts the transfer and hands the player
+  a URL from a local HTTP server bound to `127.0.0.1` — the same approach Stremio's own streaming
+  server takes on port 11470. The server answers range requests out of the partially-downloaded
+  file and gives libtorrent piece deadlines around the read position, so playback starts after the
+  first pieces instead of after the whole file. One transfer feeds both playback and the saved
+  file.
 - Live seeds/peers counts, pause and resume, and no seeding after the file is complete.
 
 ### Where the video ends up
@@ -69,7 +75,7 @@ Android 10+ this uses MediaStore and needs no permission; on older versions it u
 # Android SDK 34 + JDK 17 required; then:
 echo "sdk.dir=/path/to/android-sdk" > local.properties
 gradle assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
-gradle testDebugUnitTest      # 21 unit tests, incl. a MockWebServer download test
+gradle testDebugUnitTest      # 27 unit tests, incl. a MockWebServer download test
 gradle assembleRelease        # per-ABI APKs under app/build/outputs/apk/release/
 ```
 
@@ -117,8 +123,9 @@ app/src/main/java/com/stremio/lite/
   uses no private keys and stores nothing off-device.
 - The APK carries libtorrent's native library for arm64, arm32 and x86_64, which is most of its
   ~41 MB size.
-- A torrent that needs peers will sit on "finding peers" until the swarm answers (90s timeout). A
-  dead torrent fails with that message rather than hanging forever.
+- Peer discovery needs DHT and UDP. Mobile networks often block or rate-limit both, so a torrent
+  that finds nothing on mobile data may work immediately on Wi-Fi. The UI shows the live DHT node
+  count while it searches, so "0 sources" can be told apart from "0 DHT nodes".
 - Video inside an archive (`.rar`) is not unpacked; the app picks video files, not archives.
 - Watch progress is read from your account but not yet written back (`datastorePut` is wired in the
   API client but no player reporting is hooked up to it).

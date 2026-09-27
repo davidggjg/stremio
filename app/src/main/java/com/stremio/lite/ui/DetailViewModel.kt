@@ -140,6 +140,9 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
                     magnet = magnet!!,
                     title = title,
                     fileIndex = option.stream.fileIdx,
+                    trackers = option.stream.sources
+                        .filter { it.startsWith("tracker:") }
+                        .map { it.removePrefix("tracker:") },
                     metaId = meta?.id,
                     metaType = meta?.type,
                     poster = meta?.poster,
@@ -156,6 +159,58 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
                 )
             )
             DownloadService.ensureRunning(getApplication())
+        }
+    }
+
+    /**
+     * Play for a torrent stream: start the transfer, then hand the player a local URL served by
+     * [com.stremio.lite.data.download.TorrentStreamServer] while the file is still downloading.
+     * One transfer feeds both playback and the saved file.
+     */
+    fun playTorrent(option: StreamOption, onReady: (String) -> Unit) {
+        val meta = _state.value.meta
+        val video = _state.value.selectedVideo
+        val episodeLabel = video?.let { v ->
+            v.season?.let { s -> v.episode?.let { e -> " S%02dE%02d".format(s, e) } } ?: " ${v.label}"
+        }.orEmpty()
+        val title = (meta?.name ?: "Stremio") + episodeLabel
+        val magnet = option.stream.magnetUri(title) ?: run {
+            _state.value = _state.value.copy(message = "This stream has no magnet link.")
+            return
+        }
+
+        _state.value = _state.value.copy(message = "Starting torrent — playback begins once the first pieces arrive")
+        viewModelScope.launch {
+            val existing = container.downloads.existingFor(magnet)
+            val task = existing ?: container.downloads.enqueueTorrent(
+                magnet = magnet,
+                title = title,
+                fileIndex = option.stream.fileIdx,
+                trackers = option.stream.sources
+                    .filter { it.startsWith("tracker:") }
+                    .map { it.removePrefix("tracker:") },
+                metaId = meta?.id,
+                metaType = meta?.type,
+                poster = meta?.poster,
+                addonName = option.addon.name
+            ).getOrNull()
+
+            if (task == null) {
+                _state.value = _state.value.copy(message = "Could not start this torrent.")
+                return@launch
+            }
+            if (existing != null && !existing.isActive) container.downloads.resume(existing.id)
+            DownloadService.ensureRunning(getApplication())
+
+            val url = container.downloads.awaitStreamUrl(task.id)
+            if (url == null) {
+                val failure = downloads.value.firstOrNull { it.id == task.id }?.error
+                _state.value = _state.value.copy(
+                    message = failure ?: "No peers found for this torrent yet."
+                )
+            } else {
+                onReady(url)
+            }
         }
     }
 

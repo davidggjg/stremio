@@ -44,8 +44,10 @@ data class DownloadTask(
     val error: String? = null,
     /** Torrent-only: the file inside the torrent, and live swarm counters. */
     val torrentFileIndex: Int? = null,
+    val trackers: List<String> = emptyList(),
     val peers: Int = 0,
     val seeds: Int = 0,
+    val dhtNodes: Long = 0,
     val fetchingMetadata: Boolean = false,
     /** Set once the finished video has been copied into the phone's Movies library. */
     val galleryUri: String? = null,

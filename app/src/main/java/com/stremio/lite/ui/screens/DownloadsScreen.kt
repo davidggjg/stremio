@@ -157,7 +157,7 @@ private fun DownloadCard(
                         }
                         task.etaSeconds?.let { append(" · ${DownloadRepository.formatDuration(it)} left") }
                     }
-                    if (task.fetchingMetadata) append(" · finding peers")
+                    if (task.fetchingMetadata) append(" · finding peers (DHT: ${task.dhtNodes})")
                     if (!task.isTorrent && !task.supportsRanges && task.status != DownloadStatus.COMPLETED) {
                         append(" · single connection (server has no range support)")
                     }
