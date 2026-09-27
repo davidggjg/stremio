@@ -22,6 +22,17 @@ android {
         }
     }
 
+    // libtorrent's native library dominates the APK size, so a per-ABI APK is roughly half the
+    // universal one. Most phones want arm64-v8a; the universal APK stays available as a fallback.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
