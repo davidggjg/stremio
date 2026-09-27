@@ -1,8 +1,27 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
+
+/**
+ * Signing config for release builds. The keystore itself is never committed (this repo is public);
+ * it is supplied either through local.properties or, in CI, through repository secrets. Without it
+ * the build falls back to the debug key, which is fine for a local test build but produces APKs
+ * that cannot be installed over one another, because every machine has its own debug key.
+ */
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun signingValue(propertyName: String, environmentName: String): String? =
+    keystoreProperties.getProperty(propertyName) ?: System.getenv(environmentName)
+
+val releaseKeystorePath = signingValue("stremio.keystore", "STREMIO_KEYSTORE")
+val releaseKeystore = releaseKeystorePath?.let(::file)?.takeIf { it.exists() }
 
 android {
     namespace = "com.stremio.lite"
@@ -12,8 +31,8 @@ android {
         applicationId = "com.stremio.lite"
         minSdk = 23
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         ndk {
             // libtorrent4j ships one native library per ABI; these cover every real
@@ -33,12 +52,24 @@ android {
         }
     }
 
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = signingValue("stremio.keystorePassword", "STREMIO_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("stremio.keyAlias", "STREMIO_KEY_ALIAS") ?: "stremio"
+                keyPassword = signingValue("stremio.keyPassword", "STREMIO_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Debug signing so `assembleRelease` produces an installable APK without extra setup.
-            signingConfig = signingConfigs.getByName("debug")
+            // The shared release key when it is available, so updates install over each other;
+            // otherwise the debug key, so the build still works with no setup.
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 

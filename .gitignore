@@ -7,3 +7,7 @@ local.properties
 captures/
 *.apk
 *.keystore
+*.jks
+keystore.properties
+*.SAVE-ME
+*.keystore.*

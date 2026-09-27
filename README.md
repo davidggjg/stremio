@@ -70,10 +70,32 @@ Android 10+ this uses MediaStore and needs no permission; on older versions it u
 echo "sdk.dir=/path/to/android-sdk" > local.properties
 gradle assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
 gradle testDebugUnitTest      # 21 unit tests, incl. a MockWebServer download test
-gradle assembleRelease        # signed with the debug key so it installs as-is
+gradle assembleRelease        # per-ABI APKs under app/build/outputs/apk/release/
 ```
 
-CI (`.github/workflows/android.yml`) runs the tests and uploads both APKs as artifacts on every push.
+### Signing
+
+Release builds are signed with a shared key when one is configured, so a new build installs **over**
+the previous one. Without it Gradle falls back to the debug key — and because every machine (and
+every CI runner) generates its own debug key, APKs from different sources refuse to install over
+each other with a signature error.
+
+The keystore is deliberately **not** committed, since this repository is public. Point the build at
+it through `local.properties`:
+
+```properties
+stremio.keystore=/absolute/path/to/stremio-release.keystore
+stremio.keystorePassword=...
+stremio.keyAlias=stremio
+stremio.keyPassword=...
+```
+
+For CI, add these repository secrets (Settings → Secrets and variables → Actions):
+`STREMIO_KEYSTORE_BASE64` (the keystore, base64-encoded), `STREMIO_KEYSTORE_PASSWORD`,
+`STREMIO_KEY_ALIAS`, `STREMIO_KEY_PASSWORD`. The workflow decodes the key when the secrets exist and
+falls back to the debug key when they do not.
+
+CI (`.github/workflows/android.yml`) runs the tests and uploads the APKs as artifacts on every push.
 
 To install on a phone: enable "install unknown apps" and open the APK, or
 `adb install app-debug.apk`.
