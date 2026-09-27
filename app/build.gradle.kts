@@ -59,6 +59,11 @@ android {
                 storePassword = signingValue("stremio.keystorePassword", "STREMIO_KEYSTORE_PASSWORD")
                 keyAlias = signingValue("stremio.keyAlias", "STREMIO_KEY_ALIAS") ?: "stremio"
                 keyPassword = signingValue("stremio.keyPassword", "STREMIO_KEY_PASSWORD")
+                // Sign with every scheme: v1/v2 for older devices, v3 so recent Android versions
+                // (and Samsung's installer checks) see a full-strength signature.
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
     }
