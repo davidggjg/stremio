@@ -133,8 +133,10 @@ class ChunkedDownloader(private val client: OkHttpClient) {
                 if (attempt > MAX_RETRIES) {
                     throw DownloadException("Chunk ${chunk.index} failed: ${e.message}", e)
                 }
-                // Back off, then resume this chunk from the byte it reached.
-                delay(RETRY_BASE_DELAY_MS * attempt)
+                // Back off, then resume this chunk from the byte it reached. A chunk that keeps
+                // dying still makes progress each round, so the file does not restart.
+                val backoff = (RETRY_BASE_DELAY_MS shl (attempt - 1).coerceAtMost(4))
+                delay(backoff.coerceAtMost(MAX_RETRY_DELAY_MS))
             }
         }
     }
@@ -169,6 +171,7 @@ class ChunkedDownloader(private val client: OkHttpClient) {
             RandomAccessFile(target, "rw").use { raf ->
                 raf.seek(chunk.remainingFrom)
                 val buffer = ByteArray(BUFFER_SIZE)
+                var lastProgressAt = System.currentTimeMillis()
                 while (true) {
                     val remaining = if (chunk.end == Long.MAX_VALUE) buffer.size.toLong()
                     else chunk.size - chunk.downloaded
@@ -176,10 +179,21 @@ class ChunkedDownloader(private val client: OkHttpClient) {
                     val toRead = minOf(buffer.size.toLong(), remaining).toInt()
                     val read = source.read(buffer, 0, toRead)
                     if (read == -1) break
+                    if (read == 0) {
+                        // A socket that is open but silent would otherwise spin here forever.
+                        if (System.currentTimeMillis() - lastProgressAt > STALL_TIMEOUT_MS) {
+                            throw DownloadException("Chunk ${chunk.index} stalled")
+                        }
+                        continue
+                    }
                     raf.write(buffer, 0, read)
                     chunk.downloaded += read
                     counter.addAndGet(read.toLong())
+                    lastProgressAt = System.currentTimeMillis()
                 }
+                // Make sure the bytes are on disk, not only in the page cache, before this
+                // chunk counts as done: a process kill mid-write must not corrupt the file.
+                runCatching { raf.fd.sync() }
             }
         }
         if (chunk.end != Long.MAX_VALUE && !chunk.isComplete) {
@@ -209,16 +223,29 @@ class ChunkedDownloader(private val client: OkHttpClient) {
     }
 
     companion object {
-        private const val BUFFER_SIZE = 128 * 1024
-        private const val MAX_RETRIES = 5
-        private const val RETRY_BASE_DELAY_MS = 1_000L
+        private const val BUFFER_SIZE = 512 * 1024
+        private const val MAX_RETRIES = 8
+        private const val RETRY_BASE_DELAY_MS = 800L
+        private const val MAX_RETRY_DELAY_MS = 15_000L
         private const val PROGRESS_INTERVAL_MS = 500L
-        private const val MIN_CHUNK_SIZE = 1L * 1024 * 1024
+        private const val MIN_CHUNK_SIZE = 2L * 1024 * 1024
+        /** A connection that has delivered nothing for this long is restarted, not waited on. */
+        private const val STALL_TIMEOUT_MS = 40_000L
 
-        /** Splits [total] into at most [connections] chunks, never smaller than 1 MiB each. */
+        /**
+         * Splits [total] into at most [connections] chunks, never smaller than 2 MiB each.
+         *
+         * Large files get more connections than asked for: past a few hundred megabytes the
+         * bottleneck is usually per-connection throughput rather than the link itself.
+         */
         fun planChunks(total: Long, connections: Int): List<ChunkState> {
             if (total <= 0) return listOf(ChunkState(0, 0, Long.MAX_VALUE))
-            val count = connections.coerceIn(1, 32)
+            val scaled = when {
+                total >= 4L * 1024 * 1024 * 1024 -> connections * 2
+                total >= 700L * 1024 * 1024 -> (connections * 3) / 2
+                else -> connections
+            }
+            val count = scaled.coerceIn(1, 32)
                 .coerceAtMost(((total + MIN_CHUNK_SIZE - 1) / MIN_CHUNK_SIZE).toInt().coerceAtLeast(1))
             val size = total / count
             return (0 until count).map { i ->

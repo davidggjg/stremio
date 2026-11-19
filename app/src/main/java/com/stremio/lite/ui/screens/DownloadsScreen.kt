@@ -44,16 +44,15 @@ fun DownloadsScreen(onPlayFile: (String) -> Unit) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text("Downloads", style = MaterialTheme.typography.headlineSmall)
+                Text("הורדות", style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    "Finished videos are copied to Movies/Stremio Lite on your phone " +
-                        "(working copy: ${viewModel.downloadDirPath()})",
+                    "סרטונים שהסתיימו מועתקים אל Movies/Stremio Lite בטלפון",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Row {
-                    TextButton(onClick = { viewModel.resumeAll() }) { Text("Resume all") }
-                    TextButton(onClick = { viewModel.pauseAll() }) { Text("Pause all") }
+                    TextButton(onClick = { viewModel.resumeAll() }) { Text("המשך הכל") }
+                    TextButton(onClick = { viewModel.pauseAll() }) { Text("השהה הכל") }
                 }
             }
         }
@@ -61,10 +60,10 @@ fun DownloadsScreen(onPlayFile: (String) -> Unit) {
         item {
             Card(modifier = Modifier.fillMaxWidth().padding(12.dp), shape = RoundedCornerShape(12.dp)) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text("Speed settings", style = MaterialTheme.typography.titleSmall)
+                    Text("הגדרות מהירות", style = MaterialTheme.typography.titleSmall)
 
                     Text(
-                        "Connections per file: ${settings.connectionsPerDownload}",
+                        "חיבורים לקובץ: ${settings.connectionsPerDownload}",
                         style = MaterialTheme.typography.bodySmall
                     )
                     Slider(
@@ -77,7 +76,7 @@ fun DownloadsScreen(onPlayFile: (String) -> Unit) {
                     )
 
                     Text(
-                        "Files at the same time: ${settings.parallelDownloads}",
+                        "קבצים במקביל: ${settings.parallelDownloads}",
                         style = MaterialTheme.typography.bodySmall
                     )
                     Slider(
@@ -94,14 +93,14 @@ fun DownloadsScreen(onPlayFile: (String) -> Unit) {
                             checked = settings.wifiOnly,
                             onCheckedChange = { viewModel.updateSettings(settings.copy(wifiOnly = it)) }
                         )
-                        Text("Wi-Fi only", modifier = Modifier.padding(start = 8.dp))
+                        Text("Wi-Fi בלבד", modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }
         }
 
         if (tasks.isEmpty()) {
-            item { EmptyMessage("Nothing downloaded yet. Open a title, pick a stream and tap Download.") }
+            item { EmptyMessage("עדיין לא הורדת כלום. פתח כותר, בחר מקור ולחץ הורד.") }
         }
 
         items(tasks.size) { index ->
@@ -153,17 +152,17 @@ private fun DownloadCard(
                     if (task.status == DownloadStatus.RUNNING) {
                         append(" · ${DownloadRepository.formatBytes(task.speedBytesPerSec)}/s")
                         if (task.isTorrent) {
-                            append(" · ${task.seeds} seeds / ${task.peers} peers")
+                            append(" · ${task.seeds} משתפים / ${task.peers} עמיתים")
                         } else {
-                            append(" · ${task.chunks.size} connections")
+                            append(" · ${task.chunks.size} חיבורים")
                         }
-                        task.etaSeconds?.let { append(" · ${DownloadRepository.formatDuration(it)} left") }
+                        task.etaSeconds?.let { append(" · נותרו ${DownloadRepository.formatDuration(it)}") }
                     }
-                    if (task.fetchingMetadata) append(" · finding peers (DHT: ${task.dhtNodes})")
+                    if (task.fetchingMetadata) append(" · מחפש מקורות (DHT: ${task.dhtNodes})")
                     if (!task.isTorrent && !task.supportsRanges && task.status != DownloadStatus.COMPLETED) {
-                        append(" · single connection (server has no range support)")
+                        append(" · חיבור אחד (השרת לא תומך בטווחים)")
                     }
-                    if (task.galleryUri != null) append(" · saved to your Movies library")
+                    if (task.galleryUri != null) append(" · נשמר בגלריה")
                 },
                 style = MaterialTheme.typography.labelSmall
             )
@@ -175,24 +174,24 @@ private fun DownloadCard(
                 when (task.status) {
                     DownloadStatus.RUNNING, DownloadStatus.QUEUED -> TextButton(onClick = { onPause(task) }) {
                         Icon(Icons.Filled.Pause, contentDescription = null)
-                        Text("Pause")
+                        Text("השהה")
                     }
                     DownloadStatus.PAUSED -> TextButton(onClick = { onResume(task) }) {
                         Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                        Text("Resume")
+                        Text("המשך")
                     }
                     DownloadStatus.FAILED -> TextButton(onClick = { onRetry(task) }) {
                         Icon(Icons.Filled.Refresh, contentDescription = null)
-                        Text("Retry")
+                        Text("נסה שוב")
                     }
                     DownloadStatus.COMPLETED -> TextButton(onClick = { onPlay(task) }) {
                         Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                        Text("Play")
+                        Text("נגן")
                     }
                 }
                 TextButton(onClick = { onDelete(task) }) {
                     Icon(Icons.Filled.Delete, contentDescription = null)
-                    Text("Delete")
+                    Text("מחק")
                 }
             }
         }

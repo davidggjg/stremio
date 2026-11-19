@@ -7,7 +7,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
@@ -27,10 +29,14 @@ class DownloadService : LifecycleService() {
 
     private val repository: DownloadRepository by lazy { AppContainer.get(this).downloads }
 
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var wifiLock: WifiManager.WifiLock? = null
+
     override fun onCreate() {
         super.onCreate()
         createChannel()
         startForegroundWithNotification(buildNotification(emptyList()))
+        acquireLocks()
 
         // Polled rather than collected per change: progress updates land many times a second and
         // the notification only needs to move once a second.
@@ -65,6 +71,43 @@ class DownloadService : LifecycleService() {
             }
         }
         return START_STICKY
+    }
+
+    /**
+     * Without these the system suspends the CPU and powers down the Wi-Fi radio soon after the
+     * screen goes off, which shows up as a download that simply stops partway through. The
+     * foreground notification alone does not prevent that.
+     */
+    private fun acquireLocks() {
+        runCatching {
+            val power = getSystemService(PowerManager::class.java)
+            wakeLock = power?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "StremioLite:downloads")
+                ?.apply { setReferenceCounted(false); acquire(WAKE_LOCK_TIMEOUT_MS) }
+        }
+        runCatching {
+            val wifi = applicationContext.getSystemService(WifiManager::class.java)
+            val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+            } else {
+                @Suppress("DEPRECATION")
+                WifiManager.WIFI_MODE_FULL_HIGH_PERF
+            }
+            wifiLock = wifi?.createWifiLock(mode, "StremioLite:downloads")
+                ?.apply { setReferenceCounted(false); acquire() }
+        }
+    }
+
+    private fun releaseLocks() {
+        runCatching { wakeLock?.takeIf { it.isHeld }?.release() }
+        runCatching { wifiLock?.takeIf { it.isHeld }?.release() }
+        wakeLock = null
+        wifiLock = null
+    }
+
+    override fun onDestroy() {
+        releaseLocks()
+        repository.persistNow()
+        super.onDestroy()
     }
 
     private fun startForegroundWithNotification(notification: Notification) {
@@ -113,7 +156,7 @@ class DownloadService : LifecycleService() {
                 append(DownloadRepository.formatBytes(primary.downloadedBytes))
                 if (primary.totalBytes > 0) append(" / ${DownloadRepository.formatBytes(primary.totalBytes)}")
                 append(" · ${DownloadRepository.formatBytes(totalSpeed)}/s")
-                primary.etaSeconds?.let { append(" · ${DownloadRepository.formatDuration(it)} left") }
+                primary.etaSeconds?.let { append(" · נותרו ${DownloadRepository.formatDuration(it)}") }
             }
         )
         builder.setProgress(100, percent, indeterminate)
@@ -151,6 +194,8 @@ class DownloadService : LifecycleService() {
         private const val NOTIFICATION_ID = 1001
         private const val NOTIFICATION_INTERVAL_MS = 1_000L
         private const val IDLE_TICKS_BEFORE_STOP = 3
+        /** Safety valve: a lock the system would otherwise hold forever if the service leaked. */
+        private const val WAKE_LOCK_TIMEOUT_MS = 6L * 60 * 60 * 1000
 
         const val ACTION_PAUSE_ALL = "com.stremio.lite.PAUSE_ALL"
         const val ACTION_RESUME_ALL = "com.stremio.lite.RESUME_ALL"

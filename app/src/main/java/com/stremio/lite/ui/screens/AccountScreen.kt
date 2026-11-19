@@ -36,28 +36,27 @@ fun AccountScreen() {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
     ) {
-        Text("Stremio account", style = MaterialTheme.typography.headlineSmall)
+        Text("חשבון Stremio", style = MaterialTheme.typography.headlineSmall)
 
         val current = session
         if (current != null) {
             Text(
-                current.user?.email ?: "Signed in",
+                current.user?.email ?: "מחובר",
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(top = 12.dp)
             )
             Text(
-                if (current.user?.isPremium == true) "Premium account" else "Free account",
+                if (current.user?.isPremium == true) "חשבון פרימיום" else "חשבון חינמי",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                "Your addon collection and library are pulled from api.strem.io and stay in sync with " +
-                    "web.stremio.com and the desktop app.",
+                "אוסף התוספים והספרייה נטענים מ-api.strem.io ונשארים מסונכרנים עם web.stremio.com ועם אפליקציית המחשב.",
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 8.dp)
             )
             OutlinedButton(onClick = { viewModel.logout() }, modifier = Modifier.padding(top = 16.dp)) {
-                Text("Sign out")
+                Text("התנתק")
             }
             return@Column
         }
@@ -70,14 +69,14 @@ fun AccountScreen() {
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text("אימייל") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
         )
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            label = { Text("סיסמה") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
@@ -92,25 +91,24 @@ fun AccountScreen() {
             enabled = !state.loading,
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
         ) {
-            Text(if (state.loading) "Signing in…" else "Sign in")
+            Text(if (state.loading) "מתחבר…" else "התחבר")
         }
         OutlinedButton(
             onClick = { viewModel.register(email, password) },
             enabled = !state.loading,
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
         ) {
-            Text("Create an account")
+            Text("צור חשבון")
         }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
         TextButton(onClick = { showAuthKey = !showAuthKey }) {
-            Text(if (showAuthKey) "Hide authKey sign-in" else "Sign in with an authKey instead")
+            Text(if (showAuthKey) "הסתר התחברות עם authKey" else "התחבר עם authKey במקום")
         }
         if (showAuthKey) {
             Text(
-                "On web.stremio.com the authKey is stored in localStorage under \"profile\". Paste it here " +
-                    "to sign in without typing your password.",
+                "ב-web.stremio.com ה-authKey שמור ב-localStorage תחת \"profile\". הדבק אותו כאן כדי להתחבר בלי להקליד סיסמה.",
                 style = MaterialTheme.typography.bodySmall
             )
             OutlinedTextField(
@@ -125,7 +123,7 @@ fun AccountScreen() {
                 enabled = !state.loading,
                 modifier = Modifier.padding(top = 8.dp)
             ) {
-                Text("Use authKey")
+                Text("השתמש ב-authKey")
             }
         }
     }

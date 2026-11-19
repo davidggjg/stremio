@@ -37,7 +37,7 @@ fun SearchScreen(viewModel: SearchViewModel, onOpen: (type: String, id: String) 
             OutlinedTextField(
                 value = state.query,
                 onValueChange = viewModel::onQueryChange,
-                label = { Text("Search your addons") },
+                label = { Text("חיפוש בתוספים שלך") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -89,9 +89,9 @@ fun SearchScreen(viewModel: SearchViewModel, onOpen: (type: String, id: String) 
                 }
 
                 if (!state.running && state.searched && state.groups.isEmpty()) {
-                    item { EmptyMessage("Nothing found for \"${state.query}\".") }
+                    item { EmptyMessage("לא נמצא כלום עבור \"${state.query}\".") }
                 } else if (!state.searched) {
-                    item { EmptyMessage("Type at least two letters — results appear as each addon answers.") }
+                    item { EmptyMessage("הקלד לפחות שתי אותיות — תוצאות מופיעות ככל שתוספים עונים.") }
                 }
             }
         }

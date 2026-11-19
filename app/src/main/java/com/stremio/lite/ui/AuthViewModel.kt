@@ -26,7 +26,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
 
     fun login(email: String, password: String) = run {
         if (email.isBlank() || password.isBlank()) {
-            _state.value = AuthUiState(error = "Email and password are required")
+            _state.value = AuthUiState(error = "צריך אימייל וסיסמה")
             return@run
         }
         launchAuth { container.api.login(email.trim(), password) }
@@ -40,7 +40,7 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
     fun loginWithAuthKey(authKey: String) {
         val key = authKey.trim()
         if (key.isBlank()) {
-            _state.value = AuthUiState(error = "Paste an authKey first")
+            _state.value = AuthUiState(error = "הדבק קודם authKey")
             return
         }
         _state.value = AuthUiState(loading = true)
@@ -90,5 +90,5 @@ class AuthViewModel(app: Application) : AndroidViewModel(app) {
 
 internal fun Throwable.readableMessage(): String = when (this) {
     is StremioApiException -> error.message
-    else -> message ?: "Something went wrong"
+    else -> message ?: "משהו השתבש"
 }

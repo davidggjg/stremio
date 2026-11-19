@@ -93,7 +93,7 @@ class CatalogRepository(
             }
             patch(key) {
                 when {
-                    items == null -> it.copy(status = RowStatus.ERROR, error = "${row.addon.name} did not answer")
+                    items == null -> it.copy(status = RowStatus.ERROR, error = "${row.addon.name} לא הגיב")
                     items.isEmpty() -> it.copy(status = RowStatus.READY, items = emptyList(), endReached = true)
                     else -> it.copy(
                         status = RowStatus.READY,

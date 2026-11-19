@@ -31,7 +31,7 @@ class AppContainer private constructor(context: Context) {
     val addons = AddonRepository(appContext, api, addonClient, session)
     val catalogs = CatalogRepository(addons, addonClient, scope)
     val library = LibraryRepository(api, session)
-    val downloads = DownloadRepository(appContext, http)
+    val downloads = DownloadRepository(appContext, Http.downloadClient(appContext))
 
     companion object {
         @Volatile

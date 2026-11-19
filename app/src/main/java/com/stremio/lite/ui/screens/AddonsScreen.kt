@@ -52,12 +52,12 @@ fun AddonsScreen() {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text("Addons", style = MaterialTheme.typography.headlineSmall)
+                Text("תוספים", style = MaterialTheme.typography.headlineSmall)
                 Text(
                     if (viewModel.signedIn) {
-                        "Synced with your Stremio account — installs and removals show up on every device."
+                        "מסונכרן עם חשבון ה-Stremio שלך — התקנה והסרה מופיעות בכל המכשירים."
                     } else {
-                        "Signed out: addons are stored on this device only. Sign in to use your account's collection."
+                        "לא מחובר: התוספים נשמרים במכשיר הזה בלבד. התחבר כדי להשתמש באוסף של החשבון."
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -66,7 +66,7 @@ fun AddonsScreen() {
                     Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                 }
                 if (viewModel.signedIn) {
-                    TextButton(onClick = { viewModel.syncNow() }) { Text("Sync from account") }
+                    TextButton(onClick = { viewModel.syncNow() }) { Text("סנכרן מהחשבון") }
                 }
             }
         }
@@ -76,7 +76,7 @@ fun AddonsScreen() {
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text("Addon manifest URL or stremio:// link") },
+                    label = { Text("כתובת manifest או קישור stremio://") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -88,14 +88,14 @@ fun AddonsScreen() {
                     enabled = !state.busy && url.isNotBlank(),
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
-                    Text(if (state.busy) "Installing…" else "Install addon")
+                    Text(if (state.busy) "מתקין…" else "התקן תוסף")
                 }
             }
         }
 
         item {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text("Quick install", style = MaterialTheme.typography.titleSmall)
+                Text("התקנה מהירה", style = MaterialTheme.typography.titleSmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                     DefaultAddons.suggestions.take(2).forEach { (label, manifestUrl) ->
                         AssistChip(onClick = { viewModel.install(manifestUrl) }, label = { Text(label) })
@@ -109,7 +109,7 @@ fun AddonsScreen() {
             }
         }
 
-        item { SectionHeader("Installed (${addons.size})") }
+        item { SectionHeader("מותקנים (${addons.size})") }
 
         items(addons.size) { index ->
             val addon = addons[index]
@@ -125,7 +125,7 @@ fun AddonsScreen() {
                             if (addon.manifest.types.isNotEmpty()) {
                                 append(" · ${addon.manifest.types.joinToString(", ")}")
                             }
-                            append(if (addon.source == AddonSource.ACCOUNT) " · account" else " · local")
+                            append(if (addon.source == AddonSource.ACCOUNT) " · חשבון" else " · מקומי")
                         },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -134,7 +134,7 @@ fun AddonsScreen() {
                         Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
                     }
                     if (!addon.protected) {
-                        TextButton(onClick = { viewModel.uninstall(addon) }) { Text("Remove") }
+                        TextButton(onClick = { viewModel.uninstall(addon) }) { Text("הסר") }
                     }
                 }
             }

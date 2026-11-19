@@ -106,7 +106,7 @@ fun DetailScreen(
             }
 
             if (!meta?.videos.isNullOrEmpty()) {
-                item { SectionHeader("Episodes") }
+                item { SectionHeader("פרקים") }
                 item {
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 16.dp),
@@ -142,7 +142,7 @@ fun DetailScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Streams", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
+                    Text("מקורות", style = MaterialTheme.typography.titleMedium, color = Palette.TextPrimary)
                     Spacer(Modifier.width(10.dp))
                     if (state.streamsLoading) {
                         CircularProgressIndicator(
@@ -152,7 +152,7 @@ fun DetailScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "${state.pendingAddons} addons still answering",
+                            "${state.pendingAddons} תוספים עדיין עונים",
                             style = MaterialTheme.typography.labelSmall,
                             color = Palette.TextFaint
                         )
@@ -170,7 +170,7 @@ fun DetailScreen(
                     ) {
                         item {
                             GlassChip(
-                                text = "All ${state.streams.size}",
+                                text = "הכל ${state.streams.size}",
                                 selected = state.addonFilter == null,
                                 onClick = { viewModel.selectAddonFilter(null) }
                             )
@@ -209,7 +209,7 @@ fun DetailScreen(
                             }
                             option.stream.externalUrl != null ->
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(option.stream.externalUrl)))
-                            else -> Toast.makeText(context, "This stream cannot be played", Toast.LENGTH_SHORT).show()
+                            else -> Toast.makeText(context, "לא ניתן לנגן את המקור הזה", Toast.LENGTH_SHORT).show()
                         }
                     },
                     onDownload = { viewModel.download(option) }
@@ -217,7 +217,7 @@ fun DetailScreen(
             }
 
             if (!state.streamsLoading && state.streams.isEmpty()) {
-                item { EmptyMessage(state.error ?: "No streams available.") }
+                item { EmptyMessage(state.error ?: "אין מקורות זמינים.") }
             }
 
             // Which addons were asked and what each said — so "no sources" is never a mystery.
@@ -225,7 +225,7 @@ fun DetailScreen(
                 item {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         Text(
-                            "Sources",
+                            "מקורות שנשאלו",
                             style = MaterialTheme.typography.labelMedium,
                             color = Palette.TextFaint
                         )
@@ -235,10 +235,10 @@ fun DetailScreen(
                                     append("· ${report.addonName}: ")
                                     append(
                                         when {
-                                            report.skippedByManifest -> "skipped (manifest says it has nothing for this)"
-                                            report.failed -> "no answer"
-                                            report.count == 0 -> "no streams"
-                                            else -> "${report.count} streams"
+                                            report.skippedByManifest -> "דולג (לפי המניפסט אין לו כלום לזה)"
+                                            report.failed -> "לא ענה"
+                                            report.count == 0 -> "אין מקורות"
+                                            else -> "${report.count} מקורות"
                                         }
                                     )
                                 },
@@ -285,7 +285,7 @@ private fun Hero(meta: MetaItem?, fallbackTitle: String, onBack: () -> Unit) {
                 .glass(CircleShape, elevation = 6.dp)
                 .size(40.dp)
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Palette.TextPrimary)
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "חזור", tint = Palette.TextPrimary)
         }
 
         Column(
@@ -344,7 +344,7 @@ private fun StreamCard(
                 contentAlignment = Alignment.Center
             ) {
                 IconButton(onClick = onPlay) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = "Play", tint = Color.White)
+                    Icon(Icons.Filled.PlayArrow, contentDescription = "נגן", tint = Color.White)
                 }
             }
 
@@ -357,7 +357,7 @@ private fun StreamCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    option.addon.name + if (option.stream.isTorrent) " · torrent" else "",
+                    option.addon.name + if (option.stream.isTorrent) " · טורנט" else "",
                     style = MaterialTheme.typography.labelSmall,
                     color = Palette.TextFaint
                 )
@@ -369,12 +369,12 @@ private fun StreamCard(
                     )
                     Text(
                         text = if (task.fetchingMetadata) {
-                            "Finding peers… (DHT: ${task.dhtNodes})"
+                            "מחפש מקורות… (DHT: ${task.dhtNodes})"
                         } else {
                             buildString {
                                 append("${(task.progress * 100).toInt()}%")
                                 append(" · ${DownloadRepository.formatBytes(task.speedBytesPerSec)}/s")
-                                if (task.isTorrent) append(" · ${task.seeds}S/${task.peers}P")
+                                if (task.isTorrent) append(" · ${task.seeds} משתפים / ${task.peers} עמיתים")
                             }
                         },
                         style = MaterialTheme.typography.labelSmall,
@@ -387,7 +387,7 @@ private fun StreamCard(
             IconButton(onClick = onDownload, enabled = !downloaded) {
                 Icon(
                     if (downloaded) Icons.Filled.CheckCircle else Icons.Filled.Download,
-                    contentDescription = "Download",
+                    contentDescription = "הורד",
                     tint = if (downloaded) Palette.Success else Palette.TextSecondary
                 )
             }

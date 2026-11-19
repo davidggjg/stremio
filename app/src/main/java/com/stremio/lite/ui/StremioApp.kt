@@ -41,12 +41,12 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 
 private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
-    BOARD("board", "Board", Icons.Filled.Home),
-    DISCOVER("discover", "Discover", Icons.Filled.Explore),
-    SEARCH("search", "Search", Icons.Filled.Search),
-    DOWNLOADS("downloads", "Downloads", Icons.Filled.Download),
-    ADDONS("addons", "Addons", Icons.Filled.Extension),
-    ACCOUNT("account", "Account", Icons.Filled.Person)
+    BOARD("board", "ראשי", Icons.Filled.Home),
+    DISCOVER("discover", "גלה", Icons.Filled.Explore),
+    SEARCH("search", "חיפוש", Icons.Filled.Search),
+    DOWNLOADS("downloads", "הורדות", Icons.Filled.Download),
+    ADDONS("addons", "תוספים", Icons.Filled.Extension),
+    ACCOUNT("account", "חשבון", Icons.Filled.Person)
 }
 
 @Composable

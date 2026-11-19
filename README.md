@@ -1,6 +1,6 @@
 # Stremio Lite for Android
 
-A native Android client for **your own Stremio account**: it signs in to `api.strem.io`, pulls the
+A native Android client for **your own Stremio account**, with a Hebrew, right-to-left interface: it signs in to `api.strem.io`, pulls the
 addon collection and library you already have, browses every addon's catalogs, plays streams — and
 adds the thing the official app does not have: a **download button** with a multi-connection,
 resumable, background downloader.

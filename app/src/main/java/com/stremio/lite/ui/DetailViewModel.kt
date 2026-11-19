@@ -79,7 +79,7 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val meta = firstMeta(type, id)
             if (meta == null) {
-                _state.value = DetailUiState(loading = false, error = "No addon could describe this item")
+                _state.value = DetailUiState(loading = false, error = "אף תוסף לא יודע לתאר את הפריט הזה")
                 return@launch
             }
             val firstVideo = meta.videos.minByOrNull { (it.season ?: 0) * 10_000 + (it.episode ?: 0) }
@@ -120,7 +120,7 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(
                 streamsLoading = false,
                 streams = emptyList(),
-                error = "No stream addon is installed. Add one (for example Torrentio) in the Addons tab."
+                error = "לא מותקן תוסף מקורות. הוסף אחד (למשל Torrentio) בטאב התוספים."
             )
             return
         }
@@ -157,7 +157,7 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
                         pendingAddons = pending,
                         streamsLoading = pending > 0,
                         error = if (pending == 0 && merged.isEmpty()) {
-                            "No addon returned a stream for this episode."
+                            "אף תוסף לא החזיר מקור לפרק הזה."
                         } else {
                             null
                         }
@@ -189,7 +189,7 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
         val magnet = option.stream.magnetUri(title)
 
         if (httpUrl == null && magnet == null) {
-            _state.value = _state.value.copy(message = "This stream has no file to download.")
+            _state.value = _state.value.copy(message = "למקור הזה אין קובץ להורדה.")
             return
         }
 
@@ -221,10 +221,10 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(
                 message = result.fold(
                     onSuccess = {
-                        if (it.isTorrent) "Torrent added — finding peers, then downloading to your phone"
-                        else "Downloading \"${it.fileName}\" in the background"
+                        if (it.isTorrent) "הטורנט נוסף — מחפש מקורות ואז מוריד לטלפון"
+                        else "מוריד את \"${it.fileName}\" ברקע"
                     },
-                    onFailure = { "Could not start the download: ${it.readableMessage()}" }
+                    onFailure = { "לא ניתן להתחיל את ההורדה: ${it.readableMessage()}" }
                 )
             )
             DownloadService.ensureRunning(getApplication())
@@ -238,11 +238,11 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
     fun playTorrent(option: StreamOption, onReady: (String) -> Unit) {
         val title = titleFor()
         val magnet = option.stream.magnetUri(title) ?: run {
-            _state.value = _state.value.copy(message = "This stream has no magnet link.")
+            _state.value = _state.value.copy(message = "למקור הזה אין קישור מגנט.")
             return
         }
 
-        _state.value = _state.value.copy(message = "Starting torrent — playback begins once the first pieces arrive")
+        _state.value = _state.value.copy(message = "מתחיל טורנט — הניגון יתחיל ברגע שיגיעו החלקים הראשונים")
         viewModelScope.launch {
             val meta = _state.value.meta
             val existing = container.downloads.existingFor(magnet)
@@ -258,7 +258,7 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
             ).getOrNull()
 
             if (task == null) {
-                _state.value = _state.value.copy(message = "Could not start this torrent.")
+                _state.value = _state.value.copy(message = "לא ניתן להתחיל את הטורנט הזה.")
                 return@launch
             }
             if (existing != null && !existing.isActive) container.downloads.resume(existing.id)
@@ -267,7 +267,7 @@ class DetailViewModel(app: Application) : AndroidViewModel(app) {
             val url = container.downloads.awaitStreamUrl(task.id)
             if (url == null) {
                 val failure = downloads.value.firstOrNull { it.id == task.id }?.error
-                _state.value = _state.value.copy(message = failure ?: "No peers found for this torrent yet.")
+                _state.value = _state.value.copy(message = failure ?: "עדיין לא נמצאו מקורות לטורנט הזה.")
             } else {
                 onReady(url)
             }

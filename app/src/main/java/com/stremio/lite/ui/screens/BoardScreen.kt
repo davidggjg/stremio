@@ -46,13 +46,13 @@ fun BoardScreen(viewModel: BoardViewModel, onOpen: (type: String, id: String) ->
         ) {
             item {
                 ScreenTitle(
-                    title = "Board",
-                    subtitle = "${addons.size} addons · ${rows.size} catalogs"
+                    title = "ראשי",
+                    subtitle = "${addons.size} תוספים · ${rows.size} קטלוגים"
                 )
             }
 
             if (library.isNotEmpty()) {
-                item { SectionHeader("Continue watching") }
+                item { SectionHeader("ממשיכים לצפות") }
                 item {
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 10.dp),
@@ -64,7 +64,7 @@ fun BoardScreen(viewModel: BoardViewModel, onOpen: (type: String, id: String) ->
                                 title = item.name.ifBlank { item.id },
                                 poster = item.poster,
                                 subtitle = item.state?.takeIf { it.progress > 0f }
-                                    ?.let { "${(it.progress * 100).toInt()}% watched" },
+                                    ?.let { "נצפה ${(it.progress * 100).toInt()}%" },
                                 onClick = { onOpen(item.type, item.id) }
                             )
                         }
@@ -85,13 +85,13 @@ fun BoardScreen(viewModel: BoardViewModel, onOpen: (type: String, id: String) ->
             if (rows.isEmpty()) {
                 item {
                     EmptyMessage(
-                        "No catalogs yet. Sign in to your Stremio account or install addons to fill the board."
+                        "אין עדיין קטלוגים. התחבר לחשבון Stremio שלך או התקן תוספים כדי למלא את המסך."
                     )
                 }
             }
 
             if (rows.isNotEmpty() && rows.all { it.status == RowStatus.ERROR }) {
-                item { EmptyMessage("Every addon failed to answer. Check your connection and pull to refresh.") }
+                item { EmptyMessage("אף תוסף לא הגיב. בדוק את החיבור ונסה שוב.") }
             }
         }
     }

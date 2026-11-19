@@ -145,12 +145,12 @@ fun CatalogRowView(
         when {
             row.status == RowStatus.ERROR -> Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Text(
-                    row.error ?: "Could not load",
+                    row.error ?: "לא ניתן לטעון",
                     style = MaterialTheme.typography.bodySmall,
                     color = Palette.TextFaint,
                     modifier = Modifier.weight(1f)
                 )
-                GlassChip("Retry", onClick = onRetry)
+                GlassChip("נסה שוב", onClick = onRetry)
             }
 
             row.items.isEmpty() -> LazyRow(

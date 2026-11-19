@@ -40,7 +40,7 @@ fun DiscoverScreen(viewModel: DiscoverViewModel, onOpen: (type: String, id: Stri
 
     GlassBackground {
         Column(modifier = Modifier.fillMaxSize()) {
-            ScreenTitle("Discover", state.selected?.let { "${it.addon.name} · ${it.label}" })
+            ScreenTitle("גלה", state.selected?.let { "${it.addon.name} · ${it.label}" })
 
             if (state.types.size > 1) {
                 LazyRow(
@@ -84,7 +84,7 @@ fun DiscoverScreen(viewModel: DiscoverViewModel, onOpen: (type: String, id: Stri
                 ) {
                     item {
                         GlassChip(
-                            text = "All genres",
+                            text = "כל הז'אנרים",
                             selected = state.selectedGenre == null,
                             onClick = { viewModel.selectGenre(null) }
                         )
@@ -102,7 +102,7 @@ fun DiscoverScreen(viewModel: DiscoverViewModel, onOpen: (type: String, id: Stri
 
             when {
                 state.loading -> LoadingBox()
-                state.items.isEmpty() -> EmptyMessage(state.error ?: "Pick a catalog above.")
+                state.items.isEmpty() -> EmptyMessage(state.error ?: "בחר קטלוג מלמעלה.")
                 else -> LazyVerticalGrid(
                     state = gridState,
                     columns = GridCells.Adaptive(118.dp),

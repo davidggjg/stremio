@@ -32,8 +32,8 @@ class AddonsViewModel(app: Application) : AndroidViewModel(app) {
             val result = container.addons.installFromUrl(url)
             _state.value = AddonsUiState(
                 message = result.fold(
-                    onSuccess = { "Installed ${it.name}" + if (signedIn) " and synced to your account" else "" },
-                    onFailure = { "Could not install: ${it.readableMessage()}" }
+                    onSuccess = { "${it.name} הותקן" + if (signedIn) " וסונכרן לחשבון" else "" },
+                    onFailure = { "לא ניתן להתקין: ${it.readableMessage()}" }
                 )
             )
         }
@@ -44,7 +44,7 @@ class AddonsViewModel(app: Application) : AndroidViewModel(app) {
             val result = container.addons.uninstall(addon)
             _state.value = AddonsUiState(
                 message = result.fold(
-                    onSuccess = { "Removed ${addon.name}" },
+                    onSuccess = { "${addon.name} הוסר" },
                     onFailure = { it.readableMessage() }
                 )
             )
@@ -58,8 +58,8 @@ class AddonsViewModel(app: Application) : AndroidViewModel(app) {
             val result = runCatching { container.addons.pullFromAccount(authKey) }
             _state.value = AddonsUiState(
                 message = result.fold(
-                    onSuccess = { "Addons synced from your Stremio account" },
-                    onFailure = { "Sync failed: ${it.readableMessage()}" }
+                    onSuccess = { "התוספים סונכרנו מחשבון ה-Stremio" },
+                    onFailure = { "הסנכרון נכשל: ${it.readableMessage()}" }
                 )
             )
         }

@@ -144,13 +144,13 @@ class DiscoverViewModel(app: Application) : AndroidViewModel(app) {
                     loading = false,
                     loadingMore = false,
                     endReached = items.size < CatalogRepository.CATALOG_PAGE_SIZE,
-                    error = if (merged.isEmpty()) "This catalog returned nothing" else null
+                    error = if (merged.isEmpty()) "הקטלוג הזה לא החזיר כלום" else null
                 )
             }.onFailure { error ->
                 _state.value = current.copy(
                     loading = false,
                     loadingMore = false,
-                    error = error.message ?: "Could not load this catalog"
+                    error = error.message ?: "לא ניתן לטעון את הקטלוג הזה"
                 )
             }
         }

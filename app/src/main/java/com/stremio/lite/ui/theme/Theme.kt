@@ -63,12 +63,12 @@ private val AppTypography = Typography(
 )
 
 /**
- * Always dark, and always laid out left to right: the interface is in English, so following a
- * right-to-left system locale mirrored every screen and broke the layout.
+ * Always dark, and always laid out right to left: the interface is written in Hebrew, so the
+ * layout is pinned to match it rather than following whatever locale the phone is set to.
  */
 @Composable
 fun StremioTheme(content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         MaterialTheme(
             colorScheme = DarkColors,
             typography = AppTypography,

@@ -24,6 +24,24 @@ object Http {
             instance ?: build(context).also { instance = it }
         }
 
+    /**
+     * A client for transfers that run for minutes, not seconds.
+     *
+     * The shared client deliberately carries short timeouts so one dead addon cannot stall a
+     * catalog row — but those same limits would abort a multi-gigabyte download twenty seconds
+     * in. This derives a client that keeps the connection pool and drops the overall call
+     * deadline, timing out only on a genuinely silent socket.
+     */
+    fun downloadClient(context: Context): OkHttpClient = client(context).newBuilder()
+        .callTimeout(0, TimeUnit.MILLISECONDS)
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(45, TimeUnit.SECONDS)
+        .writeTimeout(45, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        // Responses are written straight to disk, so the HTTP cache must not try to store them.
+        .cache(null)
+        .build()
+
     /** For call sites that cannot reach a Context; valid once [client] has run at least once. */
     val shared: OkHttpClient
         get() = instance ?: synchronized(this) {
