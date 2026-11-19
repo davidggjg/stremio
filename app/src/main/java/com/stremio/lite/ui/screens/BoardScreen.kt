@@ -19,6 +19,7 @@ import com.stremio.lite.ui.theme.GlassBackground
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 @Composable
 fun BoardScreen(viewModel: BoardViewModel, onOpen: (type: String, id: String) -> Unit) {
     val rows by viewModel.rows.collectAsStateWithLifecycle()

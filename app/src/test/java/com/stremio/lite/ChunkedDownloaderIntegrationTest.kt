@@ -73,6 +73,7 @@ class ChunkedDownloaderIntegrationTest {
         val downloader = ChunkedDownloader(OkHttpClient())
         val url = server.url("/video.mp4").toString()
         val target = File.createTempFile("download", ".mp4").also { it.delete() }
+        // 5 MiB against a 2 MiB minimum chunk gives two chunks, however many are requested.
         val connections = 4
 
         val task = DownloadTask(
@@ -93,9 +94,10 @@ class ChunkedDownloaderIntegrationTest {
 
         assertArrayEquals(payload, target.readBytes())
         assertEquals(payload.size.toLong(), reported)
-        // One request per chunk, each asking for its own range.
+        // One request per planned chunk, each asking for its own range.
+        val expectedChunks = ChunkedDownloader.planChunks(payload.size.toLong(), connections).size
         val ranges = servedRanges.filter { it.isNotEmpty() && it != "bytes=0-0" }
-        assertEquals(connections, ranges.size)
+        assertEquals(expectedChunks, ranges.size)
         target.delete()
     }
 

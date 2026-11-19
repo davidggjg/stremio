@@ -12,7 +12,7 @@ class ChunkPlanningTest {
     fun `chunks cover the whole file exactly once`() {
         val total = 1_234_567_890L
         val chunks = ChunkedDownloader.planChunks(total, 8)
-        assertEquals(8, chunks.size)
+        // Coverage is the property that matters: every byte in exactly one chunk, no gaps.
         assertEquals(0L, chunks.first().start)
         assertEquals(total - 1, chunks.last().end)
         chunks.zipWithNext().forEach { (a, b) -> assertEquals(a.end + 1, b.start) }
@@ -20,11 +20,24 @@ class ChunkPlanningTest {
     }
 
     @Test
+    fun `large files get more connections than asked for`() {
+        val requested = 8
+        val medium = ChunkedDownloader.planChunks(1_200L * 1024 * 1024, requested)
+        val huge = ChunkedDownloader.planChunks(6L * 1024 * 1024 * 1024, requested)
+
+        // Past 700 MB, half again as many; past 4 GB, double. Beyond those sizes the limit is
+        // per-connection throughput rather than the link itself.
+        assertEquals(requested * 3 / 2, medium.size)
+        assertEquals(requested * 2, huge.size)
+        assertTrue(huge.size <= 32)
+    }
+
+    @Test
     fun `small files are not split into tiny chunks`() {
-        // 3 MiB with 16 requested connections: 1 MiB minimum means at most 3 chunks.
-        val chunks = ChunkedDownloader.planChunks(3L * 1024 * 1024, 16)
-        assertTrue(chunks.size <= 3)
-        assertEquals(3L * 1024 * 1024, chunks.sumOf { it.size })
+        // 6 MiB with 16 requested connections: the 2 MiB minimum caps this at 3 chunks.
+        val chunks = ChunkedDownloader.planChunks(6L * 1024 * 1024, 16)
+        assertEquals(3, chunks.size)
+        assertEquals(6L * 1024 * 1024, chunks.sumOf { it.size })
     }
 
     @Test
