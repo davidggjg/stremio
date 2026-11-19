@@ -7,21 +7,29 @@ plugins {
 }
 
 /**
- * Signing config for release builds. The keystore itself is never committed (this repo is public);
- * it is supplied either through local.properties or, in CI, through repository secrets. Without it
- * the build falls back to the debug key, which is fine for a local test build but produces APKs
- * that cannot be installed over one another, because every machine has its own debug key.
+ * Signing config for release builds.
+ *
+ * The key lives in the repository at signing/stremio.keystore. That is a deliberate trade: the
+ * alternative is the debug key, and because every machine and every CI runner generates its own
+ * debug key, APKs built in different places refuse to install over one another. A single shared
+ * key means every build is an update of the last. It protects nothing secret - this app is not
+ * published to any store - and local.properties or the STREMIO_KEYSTORE environment variable
+ * still override it with a private key when that is wanted.
  */
 val keystoreProperties = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.exists()) file.inputStream().use { load(it) }
 }
 
+/** Password for the committed key. Not a secret: the keystore sits next to it in the repo. */
+val DEFAULT_KEYSTORE_PASSWORD = "stremiolite"
+
 fun signingValue(propertyName: String, environmentName: String): String? =
     keystoreProperties.getProperty(propertyName) ?: System.getenv(environmentName)
 
 val releaseKeystorePath = signingValue("stremio.keystore", "STREMIO_KEYSTORE")
-val releaseKeystore = releaseKeystorePath?.let(::file)?.takeIf { it.exists() }
+val releaseKeystore = (releaseKeystorePath?.let(::file) ?: rootProject.file("signing/stremio.keystore"))
+    .takeIf { it.exists() }
 
 android {
     namespace = "com.stremio.lite"
@@ -57,8 +65,10 @@ android {
             create("release") {
                 storeFile = releaseKeystore
                 storePassword = signingValue("stremio.keystorePassword", "STREMIO_KEYSTORE_PASSWORD")
+                    ?: DEFAULT_KEYSTORE_PASSWORD
                 keyAlias = signingValue("stremio.keyAlias", "STREMIO_KEY_ALIAS") ?: "stremio"
                 keyPassword = signingValue("stremio.keyPassword", "STREMIO_KEY_PASSWORD")
+                    ?: DEFAULT_KEYSTORE_PASSWORD
                 // Sign with every scheme: v1/v2 for older devices, v3 so recent Android versions
                 // (and Samsung's installer checks) see a full-strength signature.
                 enableV1Signing = true

@@ -6,8 +6,6 @@ local.properties
 .kotlin/
 captures/
 *.apk
-*.keystore
 *.jks
 keystore.properties
 *.SAVE-ME
-*.keystore.*

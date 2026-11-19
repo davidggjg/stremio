@@ -81,25 +81,26 @@ gradle assembleRelease        # per-ABI APKs under app/build/outputs/apk/release
 
 ### Signing
 
-Release builds are signed with a shared key when one is configured, so a new build installs **over**
-the previous one. Without it Gradle falls back to the debug key — and because every machine (and
-every CI runner) generates its own debug key, APKs from different sources refuse to install over
-each other with a signature error.
+Release builds are signed with the key committed at `signing/stremio.keystore`, so every build —
+here, on CI, on any machine — installs **over** the previous one. The alternative is the debug key,
+and since every machine and every CI runner generates its own, APKs from different sources refuse
+to install over each other with a signature error.
 
-The keystore is deliberately **not** committed, since this repository is public. Point the build at
-it through `local.properties`:
+The key is in the repository on purpose. It guards nothing: the app is not published to a store,
+and a shared key is what makes updates work. To use a private key instead, point the build at it
+and the committed one is ignored:
 
 ```properties
-stremio.keystore=/absolute/path/to/stremio-release.keystore
+# local.properties
+stremio.keystore=/absolute/path/to/your.keystore
 stremio.keystorePassword=...
-stremio.keyAlias=stremio
+stremio.keyAlias=...
 stremio.keyPassword=...
 ```
 
-For CI, add these repository secrets (Settings → Secrets and variables → Actions):
-`STREMIO_KEYSTORE_BASE64` (the keystore, base64-encoded), `STREMIO_KEYSTORE_PASSWORD`,
-`STREMIO_KEY_ALIAS`, `STREMIO_KEY_PASSWORD`. The workflow decodes the key when the secrets exist and
-falls back to the debug key when they do not.
+The same four values are read from the `STREMIO_KEYSTORE`, `STREMIO_KEYSTORE_PASSWORD`,
+`STREMIO_KEY_ALIAS` and `STREMIO_KEY_PASSWORD` environment variables, for a CI that supplies them
+as secrets.
 
 CI (`.github/workflows/android.yml`) runs the tests and uploads the APKs as artifacts on every push.
 
