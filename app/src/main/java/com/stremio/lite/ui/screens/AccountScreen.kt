@@ -23,6 +23,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.stremio.lite.ui.theme.GlassBackground
+import com.stremio.lite.ui.theme.Palette
 import com.stremio.lite.ui.AuthViewModel
 
 @Composable

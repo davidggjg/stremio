@@ -29,6 +29,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.stremio.lite.data.addon.AddonSource
 import com.stremio.lite.data.addon.DefaultAddons
+import com.stremio.lite.ui.theme.GlassBackground
+import com.stremio.lite.ui.theme.Palette
 import com.stremio.lite.ui.AddonsViewModel
 
 @Composable

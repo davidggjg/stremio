@@ -31,8 +31,8 @@ android {
         applicationId = "com.stremio.lite"
         minSdk = 23
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "2.0"
 
         ndk {
             // libtorrent4j ships one native library per ABI; these cover every real

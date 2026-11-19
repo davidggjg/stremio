@@ -31,6 +31,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.stremio.lite.data.download.DownloadRepository
 import com.stremio.lite.data.download.DownloadStatus
 import com.stremio.lite.data.download.DownloadTask
+import com.stremio.lite.ui.theme.GlassBackground
+import com.stremio.lite.ui.theme.Palette
 import com.stremio.lite.ui.DownloadsViewModel
 
 @Composable

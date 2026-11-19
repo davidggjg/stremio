@@ -1,8 +1,10 @@
 package com.stremio.lite.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -10,13 +12,15 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -27,14 +31,18 @@ import com.stremio.lite.ui.screens.AccountScreen
 import com.stremio.lite.ui.screens.AddonsScreen
 import com.stremio.lite.ui.screens.BoardScreen
 import com.stremio.lite.ui.screens.DetailScreen
+import com.stremio.lite.ui.screens.DiscoverScreen
 import com.stremio.lite.ui.screens.DownloadsScreen
 import com.stremio.lite.ui.screens.PlayerScreen
 import com.stremio.lite.ui.screens.SearchScreen
+import com.stremio.lite.ui.theme.Glass
+import com.stremio.lite.ui.theme.Palette
 import java.net.URLDecoder
 import java.net.URLEncoder
 
 private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
     BOARD("board", "Board", Icons.Filled.Home),
+    DISCOVER("discover", "Discover", Icons.Filled.Explore),
     SEARCH("search", "Search", Icons.Filled.Search),
     DOWNLOADS("downloads", "Downloads", Icons.Filled.Download),
     ADDONS("addons", "Addons", Icons.Filled.Extension),
@@ -47,10 +55,20 @@ fun StremioApp(startOnDownloads: Boolean = false) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.hierarchy?.firstOrNull()?.route
 
+    // Hoisted here rather than inside each screen, so switching tabs reuses the loaded state
+    // instead of rebuilding a ViewModel and refetching every catalog.
+    val boardViewModel: BoardViewModel = viewModel()
+    val searchViewModel: SearchViewModel = viewModel()
+    val discoverViewModel: DiscoverViewModel = viewModel()
+
     Scaffold(
+        containerColor = Palette.Base,
         bottomBar = {
             if (Tab.entries.any { it.route == currentRoute }) {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = Color.Transparent,
+                    modifier = Modifier.background(Glass.fill)
+                ) {
                     Tab.entries.forEach { tab ->
                         NavigationBarItem(
                             selected = currentRoute == tab.route,
@@ -62,7 +80,14 @@ fun StremioApp(startOnDownloads: Boolean = false) {
                                 }
                             },
                             icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) }
+                            label = { Text(tab.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Palette.TextPrimary,
+                                selectedTextColor = Palette.TextPrimary,
+                                indicatorColor = Palette.AccentSoft,
+                                unselectedIconColor = Palette.TextFaint,
+                                unselectedTextColor = Palette.TextFaint
+                            )
                         )
                     }
                 }
@@ -75,10 +100,13 @@ fun StremioApp(startOnDownloads: Boolean = false) {
             modifier = Modifier.padding(padding)
         ) {
             composable(Tab.BOARD.route) {
-                BoardScreen(onOpen = { type, id -> navController.navigateToDetail(type, id) })
+                BoardScreen(boardViewModel) { type, id -> navController.navigateToDetail(type, id) }
+            }
+            composable(Tab.DISCOVER.route) {
+                DiscoverScreen(discoverViewModel) { type, id -> navController.navigateToDetail(type, id) }
             }
             composable(Tab.SEARCH.route) {
-                SearchScreen(onOpen = { type, id -> navController.navigateToDetail(type, id) })
+                SearchScreen(searchViewModel) { type, id -> navController.navigateToDetail(type, id) }
             }
             composable(Tab.DOWNLOADS.route) {
                 DownloadsScreen(onPlayFile = { path -> navController.navigateToPlayer(path, local = true) })
@@ -114,8 +142,6 @@ private fun androidx.navigation.NavController.navigateToPlayer(
     local: Boolean,
     headers: Map<String, String> = emptyMap()
 ) {
-    // Headers are attached to the player via the shared holder rather than the route, to keep
-    // the deep link readable and short.
     PlaybackRequest.headers = headers
     navigate("player/${source.encode()}/$local")
 }
