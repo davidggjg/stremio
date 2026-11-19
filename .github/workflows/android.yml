@@ -6,6 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -40,3 +43,23 @@ jobs:
         with:
           name: stremio-lite-apks
           path: app/build/outputs/apk/*/*.apk
+
+      # A rolling "latest" release gives one stable, login-free link that opens straight from a
+      # phone, instead of an artifact zip holding every ABI in both build types. The release is
+      # created once and its files are replaced in place on later builds.
+      - name: Publish the installable APK
+        if: github.ref_name == 'claude/stremio-android-app-mv8iv5'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-arm64-v8a-release.apk "dist/StremioLite-arm64.apk"
+          cp app/build/outputs/apk/release/app-universal-release.apk "dist/StremioLite-universal.apk"
+          gh release view latest >/dev/null 2>&1 || gh release create latest \
+            --title "Stremio Lite (latest build)" \
+            --notes "Rolling build of the newest commit."
+          gh release upload latest dist/StremioLite-arm64.apk dist/StremioLite-universal.apk --clobber
+          gh release edit latest \
+            --title "Stremio Lite $version (build ${{ github.run_number }})" \
+            --notes "Install **StremioLite-arm64.apk** on a phone. Built from ${{ github.sha }}."
